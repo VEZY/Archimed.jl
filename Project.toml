@@ -3,6 +3,12 @@ uuid = "e7d647f0-f27b-11e9-044f-578cbc529583"
 authors = ["remi.vezy <VEZY@users.noreply.github.com>"]
 version = "0.1.0"
 
+[deps]
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
+GeometryTypes = "4d00f742-c7ba-57c2-abde-4428a4b178cb"
+MeshIO = "7269a6da-0436-5bbc-96c2-40638cbb6118"
+XMLDict = "228000da-037f-5747-90a9-8195ccbf91a5"
+
 [compat]
 julia = "1"
 
