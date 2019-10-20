@@ -6,9 +6,12 @@ import EzXML.root
 using MeshIO
 using GeometryTypes
 
-export read_opf,opf_to_mesh
+# 3D: 
+export read_opf,extract_opf_meshes,extract_opf_materials
 
-include("read_opf.jl")
-include("opf_to_mesh.jl")
+include("3D_related/read_opf.jl")
+include("3D_related/meshes.jl")
+include("3D_related/materials.jl")
+include("3D_related/3D_types.jl")
 
 end # module
