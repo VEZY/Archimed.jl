@@ -14,9 +14,9 @@ end
 Parse a material in opf format to [`material`]
 """
 function extract_opf_material(opf_material)
-    material(Component_light(opf_material["emission"]...),
-            Component_light(opf_material["ambient"]...),
-            Component_light(opf_material["diffuse"]...),
-            Component_light(opf_material["specular"]...),
-            opf_material["shininess"])
+    material(opf_material["emission"],
+             opf_material["ambient"],
+             opf_material["diffuse"],
+             opf_material["specular"],
+             opf_material["shininess"])
 end
