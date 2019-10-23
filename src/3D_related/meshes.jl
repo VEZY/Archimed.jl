@@ -54,3 +54,59 @@ function extract_opf_mesh(opf_mesh, MeshType::Type{MT} = GLNormalMesh) where {MT
     return MT(GeometryTypes.homogenousmesh(attr))::MT
 end
 
+"""
+Make a Dict of meshes from the reference meshes (from `[extract_opf_meshes]`) and the topology (using transformation matrices).
+These meshes can then be used for 3D graphics purposes. 
+"""
+function meshes_from_topology(opf)
+    meshes = Dict{Int32,HomogenousMesh}() # A dict with the meshes
+    attr = Dict() # A dict with the attributes (change Dict() to  Dict{Type, Any}())
+    ref_meshes= extract_opf_meshes(opf)
+    shapes= opf["shapeBDD"]["shape"]
+    attrTypes= attr_type(opf["attributeBDD"])
+    mesh_from_topology!(opf,meshes,ref_meshes,shapes,attr,attrTypes)
+
+    return Dict("mesh" => meshes, "attributes" => attr) # The whole item (mesh + attributes)
+end
+
+"""
+Compute meshes from topology and reference mesh iteratively for the whole topology. This function is called 
+    by [`meshes_from_topology`].
+"""
+function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= "topology")
+
+    attr_mesh= Dict{String,Any}()
+    # Getting the attributes:
+    for i in intersect(collect(keys(attrType)), collect(keys(node[child])))
+        push!(attr_mesh, i => node[child][i])
+    end
+    # Add the scale as an attribute:
+    push!(attr_mesh, "scale" => node[child][:scale])
+
+    id= node[child][:id]
+    # Add the resultting attributes to the main attr object:
+    push!(attr, id => attr_mesh)
+
+    # Get the geometry (transformation matrix and dUp and dDwn):
+    try
+        node[child]["geometry"]["mat"]
+        geom= node[child]["geometry"]
+        shapeIndex= parse(Int32,geom["shapeIndex"])
+        shape= shapes[shapeIndex]
+        m= vcat(geom["mat"], [0 0 0 1])
+        transformed_vertices= map(x -> Point{3,Float32}((reshape(vcat(x, 1), 1, 4) * m)[1:3]),
+                                    ref_meshes[shape["meshIndex"]].vertices)
+
+        mesh_1= HomogenousMesh(faces= ref_meshes[shape["meshIndex"]].faces,
+                                vertices= transformed_vertices,
+                                normals= ref_meshes[shape["meshIndex"]].normals)
+        push!(meshes, id => mesh_1)
+    catch
+        nothing
+    end
+
+    # Make the function recursive for each component:
+    for i in intersect(collect(keys(node[child])), ["decomp", "branch","follow"])
+        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i)
+    end
+end
