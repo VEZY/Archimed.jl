@@ -1,6 +1,10 @@
 """
 Extract all materials from the opf file, format them to [`material`] type and return a `Dict`
 out of them. The keys of the `Dict` are named after the `id` (as for the meshes).
+
+# Exemples 
+> opf= read_opf("simple_OPF_shapes.opf")
+> extract_opf_materials(opf)
 """
 function extract_opf_materials(opf)
     materials = Dict{Int32, Any}()
