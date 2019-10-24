@@ -9,10 +9,10 @@ opf= read_opf("simple_OPF_shapes.opf")
 mesh_data= meshes_from_topology(opf)
 shapes= extract_opf_shapes(opf)
 materials= extract_opf_materials(opf)
-cols= find_meshes_color(opf,mesh_data)
+cols= meshes_color(opf,mesh_data)
 mesh(merge_meshes(mesh_data["mesh"]), color= cols)
 """
-function find_meshes_color(opf,meshes::Dict{String,Dict}= meshes_from_topology(opf))
+function meshes_color(opf,meshes::Dict{String,Dict}= meshes_from_topology(opf))
 
     mesh_ids= collect(keys(meshes["mesh"]))
     materials= extract_opf_materials(opf)
@@ -31,7 +31,7 @@ function find_meshes_color(opf,meshes::Dict{String,Dict}= meshes_from_topology(o
         material_id= meshes["attributes"][mesh_ids[i]]["materialIndex"]
         col= RGBA(materials[material_id].diffuse...)
         # push!(mesh_color, mesh_ids[i] => col)
-        for j in (1:n_triangles[mesh_ids[i]] .+ prev_max[1])
+        for j in ((1:n_triangles[mesh_ids[i]]) .+ prev_max[1])
             triangle_color[j]= col
         end
         prev_max[1] += n_triangles[mesh_ids[i]]
