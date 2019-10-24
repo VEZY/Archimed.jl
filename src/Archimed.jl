@@ -4,6 +4,7 @@ import XMLDict.xml_dict
 import EzXML.readxml
 import EzXML.root
 import Colors.RGBA
+import LinearAlgebra.I
 
 using MeshIO
 using GeometryTypes

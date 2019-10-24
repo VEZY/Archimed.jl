@@ -102,12 +102,15 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
         shape= shapes[shapeIndex]
         # Add the material index as an attribute:
         push!(attr_mesh, "materialIndex" => shape["materialIndex"])
-
-        # Add the default scale factor to the matrix (to update with the true scale here:)
+        # Compute the scale matrix:
+        m_scale= Matrix{Float64}(I, 4, 4) * node[child][:scale]
+        m_scale[4,4]= 1
+        # Add w to the transformation matrix:
         m= vcat(geom["mat"], [0 0 0 1])
-        transformed_vertices= map(x -> Point{3,Float32}((m*vcat(x, 1))[1:3]),
+        transformed_vertices= map(x -> Point{3,Float32}(m*m_scale*vcat(x, 1)),
                                     ref_meshes[shape["meshIndex"]].vertices)
-
+        # NB: using vcat to add w (1) on the vector.
+        # NB2: the order for the matrices products is important.
         mesh_1= HomogenousMesh(faces= ref_meshes[shape["meshIndex"]].faces,
                                 vertices= transformed_vertices,
                                 normals= ref_meshes[shape["meshIndex"]].normals)
