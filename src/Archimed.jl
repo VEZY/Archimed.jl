@@ -5,6 +5,7 @@ import EzXML.readxml
 import EzXML.root
 import Colors.RGBA
 import LinearAlgebra.I
+import StaticArrays.SMatrix
 
 using MeshIO
 using GeometryTypes

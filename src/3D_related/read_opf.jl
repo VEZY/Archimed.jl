@@ -124,7 +124,7 @@ Parse the geometry element of the OPF.
 The transformation matrix is 3*4.
 """
 function parse_geometry(elem)
-    elem["mat"]= reshape(parse_opf_array(elem["mat"]),3,4)
+    elem["mat"]= SMatrix{3, 4}(transpose(reshape(parse_opf_array(elem["mat"]),4,3)))
     elem["dUp"]= parse_opf_array(elem["dUp"])
     elem["dDwn"]= parse_opf_array(elem["dDwn"])
 end
