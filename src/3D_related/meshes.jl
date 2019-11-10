@@ -80,8 +80,21 @@ end
 """
 Compute meshes from topology and reference mesh iteratively for the whole topology. This function is called
     by [`meshes_from_topology`].
+
+# Arguments  
+* node: parent node with all its childs (e.g. opf).  
+* meshes: a Dict with the previously computed meshes (Dict{Int32,HomogenousMesh}()). The function will recursively push to it.  
+* ref_meshes: the meshes used as a reference. A transformation matrix is used on them to build the object's meshes.  
+* shapes: shapes from the opf, i.e. the mesh index, the material index and its name.  
+* attr: an empty Dict that is filled recursively with the attributes of each node.  
+* attrType: the attributes type, read from the opf.  
+* child: the name of the node of interest.  
+* m_parent: the cumulative transformation matrix from the parents of the node.
+
+# Returns
+Increments `meshes` and `attr` in-place recursively for all childs in the node. 
 """
-function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= "topology")
+function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= "topology",m_parent=Matrix{Float64}(I, 4, 4))
 
     attr_mesh= Dict{String,Any}()
     # Getting the attributes:
@@ -98,17 +111,31 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
     # Try to get the shape index if any: 
     shapeIndex= try parse(Int32,geom["shapeIndex"]) catch nothing end
 
-    if geom != nothing && shapeIndex != nothing
+    if geom != nothing
+        # Compute the scale matrix:
+        #  m_scale= Matrix{Float64}(I, 4, 4) * node[child][:scale]
+        # m_scale[4,4]= 1
+        # Add w to the transformation matrix: 
+        # Removed this part, Scale is an MTG keyword, not the scale of the mesh.
+        
+        # Transform the matrix to add all the transformations of the parents of the node:
+        m= m_parent * vcat(geom["mat"], [0 0 0 1])
+        # NB: not sure which matrix comes first.
+    else
+        m= m_parent
+    end
+
+    if shapeIndex != nothing
         shape= shapes[shapeIndex]
         # Add the material index as an attribute:
         push!(attr_mesh, "materialIndex" => shape["materialIndex"])
-        # Compute the scale matrix:
-        m_scale= Matrix{Float64}(I, 4, 4) * node[child][:scale]
-        m_scale[4,4]= 1
-        # Add w to the transformation matrix:
-        m= vcat(geom["mat"], [0 0 0 1])
-        transformed_vertices= map(x -> Point{3,Float32}(m*m_scale*vcat(x, 1)),
+
+        # Transform the vertices:  
+        # transformed_vertices= map(x -> Point{3,Float32}((reshape(vcat(x, 1.0), 1, 4)*m)[1:3]),
+        #                             ref_meshes[shape["meshIndex"]].vertices)
+        transformed_vertices= map(x -> Point{3,Float32}(m*vcat(x, 1.0)),
                                     ref_meshes[shape["meshIndex"]].vertices)
+                                    
         # NB: using vcat to add w (1) on the vector.
         # NB2: the order for the matrices products is important.
         mesh_1= HomogenousMesh(faces= ref_meshes[shape["meshIndex"]].faces,
@@ -122,7 +149,7 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
 
     # Make the function recursive for each component:
     for i in intersect(collect(keys(node[child])), ["decomp", "branch","follow"])
-        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i)
+        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i,m)
     end
 end
 
