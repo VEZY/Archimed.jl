@@ -46,8 +46,10 @@ function extract_opf_ref_mesh(opf_mesh, MeshType::Type{MT} = GLNormalMesh) where
     end
 
     # textures coordinates:
-    for p in 1:2:length(opf_mesh["textureCoords"])
-        push!(uv, UV{Float32}(opf_mesh["textureCoords"][p:(p+1)]))
+    if "textureCoords" in keys(opf_mesh)
+        for p in 1:2:length(opf_mesh["textureCoords"])
+            push!(uv, UV{Float32}(opf_mesh["textureCoords"][p:(p+1)]))
+        end
     end
 
     # attribute_id
