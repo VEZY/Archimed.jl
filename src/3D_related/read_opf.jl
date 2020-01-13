@@ -50,7 +50,7 @@ Parse the mesh_BDD using [parse_opf_array]
 function parse_meshBDD!(opf)
     # MeshBDD:
     for m in 1:length(opf["meshBDD"]["mesh"])
-        for i in ["points", "normals", "textureCoords"]
+        for i in intersect(keys(opf["meshBDD"]["mesh"][m]),["points", "normals", "textureCoords"])
             opf["meshBDD"]["mesh"][m][i]= parse_opf_array(opf["meshBDD"]["mesh"][m][i])
         end
         for i in 1:length(opf["meshBDD"]["mesh"][m]["faces"]["face"])
