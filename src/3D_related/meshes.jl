@@ -81,20 +81,19 @@ end
 Compute meshes from topology and reference mesh iteratively for the whole topology. This function is called
     by [`meshes_from_topology`].
 
-# Arguments  
-* node: parent node with all its childs (e.g. opf).  
-* meshes: a Dict with the previously computed meshes (Dict{Int32,HomogenousMesh}()). The function will recursively push to it.  
-* ref_meshes: the meshes used as a reference. A transformation matrix is used on them to build the object's meshes.  
-* shapes: shapes from the opf, i.e. the mesh index, the material index and its name.  
-* attr: an empty Dict that is filled recursively with the attributes of each node.  
-* attrType: the attributes type, read from the opf.  
-* child: the name of the node of interest.  
-* m_parent: the cumulative transformation matrix from the parents of the node.
+# Arguments
+* node: parent node with all its childs (e.g. opf).
+* meshes: a Dict with the previously computed meshes (Dict{Int32,HomogenousMesh}()). The function will recursively push to it.
+* ref_meshes: the meshes used as a reference. A transformation matrix is used on them to build the object's meshes.
+* shapes: shapes from the opf, i.e. the mesh index, the material index and its name.
+* attr: an empty Dict that is filled recursively with the attributes of each node.
+* attrType: the attributes type, read from the opf.
+* child: the name of the node of interest.
 
 # Returns
-Increments `meshes` and `attr` in-place recursively for all childs in the node. 
+Increments `meshes` and `attr` in-place recursively for all childs in the node.
 """
-function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= "topology",m_parent=Matrix{Float64}(I, 4, 4))
+function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= "topology")
 
     attr_mesh= Dict{String,Any}()
     # Getting the attributes:
@@ -108,21 +107,14 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
 
     # Get the geometry (transformation matrix and dUp and dDwn):
     geom= try node[child]["geometry"] catch nothing end
-    # Try to get the shape index if any: 
+    # Try to get the shape index if any:
     shapeIndex= try parse(Int32,geom["shapeIndex"]) catch nothing end
 
     if geom != nothing
-        # Compute the scale matrix:
-        #  m_scale= Matrix{Float64}(I, 4, 4) * node[child][:scale]
-        # m_scale[4,4]= 1
-        # Add w to the transformation matrix: 
-        # Removed this part, Scale is an MTG keyword, not the scale of the mesh.
-        
-        # Transform the matrix to add all the transformations of the parents of the node:
-        m= m_parent * vcat(geom["mat"], [0 0 0 1])
-        # NB: not sure which matrix comes first.
+        # Add w to the transformation matrix:
+        m= vcat(geom["mat"], [0 0 0 1])
     else
-        m= m_parent
+        m= I # identity matrix from LinearAlgebra package (lazy)
     end
 
     if shapeIndex != nothing
@@ -130,14 +122,14 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
         # Add the material index as an attribute:
         push!(attr_mesh, "materialIndex" => shape["materialIndex"])
 
-        # Transform the vertices:  
-        # transformed_vertices= map(x -> Point{3,Float32}((reshape(vcat(x, 1.0), 1, 4)*m)[1:3]),
-        #                             ref_meshes[shape["meshIndex"]].vertices)
-        transformed_vertices= map(x -> Point{3,Float32}(m*vcat(x, 1.0)),
-                                    ref_meshes[shape["meshIndex"]].vertices)
-                                    
+        # Get the reference mesh and taper it in z and y (the principal axis is following x already):
+        ref_mesh_scaled= taper( ref_meshes[shape["meshIndex"]].vertices,geom["dUp"],geom["dDwn"])
+
+        # Transform the vertices:
+        transformed_vertices= map(x -> Point{3,Float32}((m*vcat(x, 1.0))[1:3]),ref_mesh_scaled)
         # NB: using vcat to add w (1) on the vector.
         # NB2: the order for the matrices products is important.
+
         mesh_1= HomogenousMesh(faces= ref_meshes[shape["meshIndex"]].faces,
                                 vertices= transformed_vertices,
                                 normals= ref_meshes[shape["meshIndex"]].normals)
@@ -146,10 +138,9 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
 
     # Add the resulting attributes to the main attr object:
     push!(attr, id => attr_mesh)
-
     # Make the function recursive for each component:
     for i in intersect(collect(keys(node[child])), ["decomp", "branch","follow"])
-        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i,m)
+        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i)
     end
 end
 
@@ -165,4 +156,25 @@ function merge_meshes(meshes::Dict{Int32,HomogenousMesh})
     end
 
     return all_meshes[1]
+end
+
+"""
+Transform a reference mesh using dDwn and dUp from the geometry of a mesh. The tapering
+helps to transform the reference mesh into a more tapered (i.e. pointy) or enlarged object, e.g.
+make a cone from a cylinder.
+"""
+function taper(mesh,dUp,dDwn)
+    delta = dDwn - dUp
+    Xs= map(x -> x[1], mesh)
+    xmin= minimum(Xs) ; xmax= maximum(Xs)
+    deltaX = xmax - xmin
+
+    scaled_mesh= Array{Point{3,Float32}}(undef, length(mesh))
+    for i in 1:length(mesh)
+        dX = (mesh[i][1] - xmin)
+        factor = dDwn - delta * (dX / deltaX)
+        scaled_mesh[i]= Point{3,Float32}(mesh[i][1],mesh[i][2] * factor,mesh[i][3] * factor)
+    end
+
+    return scaled_mesh
 end
