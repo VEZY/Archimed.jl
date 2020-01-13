@@ -155,6 +155,14 @@ function parse_opf_topology!(node,attrType,child= "topology")
 
     # Make the function recursive for each component:
     for i in intersect(collect(keys(node[child])), ["decomp", "branch","follow"])
-        parse_opf_topology!(node[child],attrType,i)
+        # If it is an Array (several "follow" are represented as an Array under only
+        # one "follow" to avoid several same key names in a Dict), then do it for each:
+        if isa(node[child][i], Array)
+            for j in 1:length(node[child][i])
+                parse_opf_topology!(node[child][i],attrType,j)
+            end
+        else
+            parse_opf_topology!(node[child],attrType,i)
+        end
     end
 end
