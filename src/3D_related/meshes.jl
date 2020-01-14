@@ -142,7 +142,15 @@ function mesh_from_topology!(node,meshes,ref_meshes,shapes,attr,attrType,child= 
     push!(attr, id => attr_mesh)
     # Make the function recursive for each component:
     for i in intersect(collect(keys(node[child])), ["decomp", "branch","follow"])
-        mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i)
+        # If it is an Array (several "follow" are represented as an Array under only
+        # one "follow" to avoid several same key names in a Dict), then do it for each:
+        if isa(node[child][i], Array)
+            for j in 1:length(node[child][i])
+                mesh_from_topology!(node[child][i],meshes,ref_meshes,shapes,attr,attrType,j)
+            end
+        else
+            mesh_from_topology!(node[child],meshes,ref_meshes,shapes,attr,attrType,i)
+        end
     end
 end
 
