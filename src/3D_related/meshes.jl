@@ -13,7 +13,7 @@ using a transformation matrix located in the topology to fit the dimensions and 
 function extract_opf_ref_meshes(opf, MeshType::Type{MT} = GLNormalMesh) where {MT <: AbstractMesh}
     meshes = Dict{Int32, Any}()
     for i in opf["meshBDD"]["mesh"]
-        push!(meshes, parse(Int32,i[:Id]) => extract_opf_ref_mesh(i))
+        push!(meshes, parse(Int32,i[:Id]) => extract_opf_ref_mesh(i,MeshType))
     end
     return meshes
 end
