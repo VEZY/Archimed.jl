@@ -5,3 +5,6 @@
 [![Build Status](https://travis-ci.com/VEZY/Archimed.jl.svg?branch=master)](https://travis-ci.com/VEZY/Archimed.jl)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/VEZY/Archimed.jl?svg=true)](https://ci.appveyor.com/project/VEZY/Archimed-jl)
 [![Codecov](https://codecov.io/gh/VEZY/Archimed.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/VEZY/Archimed.jl)
+
+> Experimental work in progress.  
+Please do not use at the moment, this code does nothing good :).
